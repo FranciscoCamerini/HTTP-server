@@ -1,5 +1,4 @@
 import argparse
-from logging import exception
 import os
 import socket
 import selectors
@@ -36,12 +35,10 @@ def service_connection(key, mask):
         if data.outb:
             request = data.outb.decode()
             headers, generator = handle_request(request)
-
             sock.sendall(headers)
 
             for chunk in generator:
                 sock.sendall(chunk)
-
             SEL.unregister(sock)
             sock.close()
 
@@ -59,7 +56,6 @@ def parse_args():
     server_host = args.bind_address
     server_port = args.port
     start_dir = args.directory
-
     return server_host, server_port, start_dir
 
 
@@ -107,4 +103,3 @@ if __name__ == '__main__':
         change_directory(start_dir)
 
     establish_connection(host, port)
-
