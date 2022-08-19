@@ -1,26 +1,26 @@
 import mimetypes
 import os
 import pathlib
-import platform
 import time
+from html import escape
 from urllib import parse
 from wsgiref.handlers import format_date_time
 
 
-SERVER_HEADER = platform.system()
+SERVER_HEADER = 'Directory Listing Server'
 OK_STATUS = '200 OK'
 
 
 def html_generator(path):
     path = pathlib.Path(path)
     dir_iteration = list(path.iterdir())
-    body = f'<html>\n<body>\n<h1>Directory Listing for {path.name}</h1>\n<ul>\n'.encode()
+    body = f'<html>\n<body>\n<h1>Directory Listing for {escape(path.name)}</h1>\n<ul>\n'.encode()
     yield body
     for file in dir_iteration:
         encoded_name = parse.quote(file.name)
         if file.is_dir():
             encoded_name += '/'
-        body = f'<li><a href="{encoded_name}">{file.name}</a></li>\n'.encode()
+        body = f'<li><a href="{encoded_name}">{escape(file.name)}</a></li>\n'.encode()
         yield body
 
 
@@ -29,7 +29,7 @@ def get_directory_list(path):
     Create an HTML page generator listing all files inside given directory and it's corresponding headers.
     """
     body_generator = html_generator(path)
-    
+
     content_length = 0
     for chunk in body_generator:
         content_length += len(chunk)
@@ -61,7 +61,7 @@ def get_file_data(filename):
     body_generator = read_file_chunk(filename, 1024)
 
     headers = {
-        'Content-Lenght': f'{os.path.getsize(filename)}',
+        'Content-Length': f'{os.path.getsize(filename)}',
         'Date': f'{format_date_time(time.time())}',
         'Last-Modified': f'{format_date_time(os.path.getmtime(filename))}',
         'Server': f'{SERVER_HEADER}',
@@ -87,11 +87,11 @@ def build_http_headers(status, headers):
 
 def parse_first_line(request):
     """
-    Parse first line from request and return required path and request method. 
+    Parse first line from request and return required path and request method.
     """
     headers = request.split('\r\n')
     request_method = headers[0].split()[0]
-    
+
     path = headers[0].split()[1][1:]
     path = parse.unquote(path)
 
@@ -112,7 +112,7 @@ def handle_exception(error):
     for chunk in body:
         content_length += len(chunk)
     body = error_generator(error)
-    
+
     headers = {
             'Content-Length': content_length,
             'Content-Type': 'text/html; charset=UTF-8',
@@ -153,14 +153,14 @@ def handle_request(request):
     elif request_method != 'GET':
         body, headers = handle_exception('Method Not Allowed')
         http_headers = build_http_headers('405 Method Not Allowed', headers)
-    
+
     return http_headers, body
 
 
 def receive_client(connection):
     connection.settimeout(2)
     request = b''
-    
+
     while True:
         request += connection.recv(1024)
         if b'\r\n\r\n' in request:
