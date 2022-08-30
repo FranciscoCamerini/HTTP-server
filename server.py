@@ -24,12 +24,16 @@ def service_connection(key, mask):
     data = key.data
 
     if mask & selectors.EVENT_READ:
-        recv_data = sock.recv(1024)
-        if recv_data:
-            data.outb += recv_data
-            if b'\r\n\r\n' in data.outb:
-                events = selectors.EVENT_WRITE
-                SEL.modify(sock, events, data)
+        try:
+            recv_data = sock.recv(1024)
+        except ConnectionResetError:
+            pass
+        else:
+            if recv_data:
+                data.outb += recv_data
+                if b'\r\n\r\n' in data.outb:
+                    events = selectors.EVENT_WRITE
+                    SEL.modify(sock, events, data)
 
     if mask & selectors.EVENT_WRITE:
         if data.outb:
@@ -87,7 +91,10 @@ def establish_connection(server_host, server_port):
                     if key.data is None:
                         accept_client(key.fileobj)
                     else:
-                        service_connection(key, mask)
+                        try:
+                            service_connection(key, mask)
+                        except ConnectionResetError:
+                            pass
         except KeyboardInterrupt:
             print('\nServer interrupted by keyboard, shuting down...')
         except socket.timeout:
