@@ -91,10 +91,7 @@ def establish_connection(server_host, server_port):
                     if key.data is None:
                         accept_client(key.fileobj)
                     else:
-                        try:
-                            service_connection(key, mask)
-                        except ConnectionResetError:
-                            pass
+                        service_connection(key, mask)
         except KeyboardInterrupt:
             print('\nServer interrupted by keyboard, shuting down...')
         except socket.timeout:
